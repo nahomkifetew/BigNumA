@@ -1,8 +1,6 @@
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.EmptyStackException;
 import java.util.Scanner;
 
 /**
@@ -28,7 +26,7 @@ public class Calculator {
 
     /**
      * Get file and parse line by line then send an expression at a time
-     * 
+     *
      * @throws IOException
      *             if file is not proper
      */
@@ -36,12 +34,13 @@ public class Calculator {
 
         // File holding expressions
         Scanner scan = new Scanner(file);
-        String operators = "+*/";
+        String operators = "+*^";
         // Loop to iterate and get each line(expression)
         while (scan.hasNextLine()) {
 
             // Get the expression/equation
             String expression = scan.nextLine(); // 123 456 * 789 +
+            expression = expression.replaceAll("\\s+", " ").trim();
 
             // Turn expression/equation into array
             String[] arrOfStr = expression.split(" "); // ["123", "456", "*",
@@ -53,31 +52,54 @@ public class Calculator {
                 }
             }
 
-            if (signCount >= (arrOfStr.length) / 2) {
+            if (signCount > (arrOfStr.length) / 2) {
                 System.out.println(expression + " =");
                 continue;
             }
 
             if (operators.contains(arrOfStr[0]) || !(operators.contains(
                 arrOfStr[arrOfStr.length - 1]))) {
-                System.out.println(expression + " ="); // Write to file
+                System.out.println(expression + " =");
 
                 continue;
             }
+            else {
 
-            // Send one expression at a time to be computed
-            String finalResult = compute(arrOfStr);
-            finalResult = finalResult.replace("[", "");
-            finalResult = finalResult.replace("]", "");
-            finalResult = finalResult.replace(",", "");
-            finalResult = finalResult.replace(" ", "");
+                int index = 0;
+                for (String element : arrOfStr) {
+                    if (operators.contains(element)) {
+                        signCount++;
+                    }
+                    else {
 
-            StringBuilder reverseChar = new StringBuilder(finalResult);
-            finalResult = reverseChar.reverse().toString();
-            System.out.println(expression + " = " + finalResult);
+                        // Removes all leading zeros
+                        arrOfStr[index] = element.replaceFirst("^0+(?!$)", "");
+                    }
+                    index++;
+                }
+
+                // Send one expression at a time to be computed
+                String finalResult = compute(arrOfStr);
+                finalResult = finalResult.replace("[", "");
+                finalResult = finalResult.replace("]", "");
+                finalResult = finalResult.replace(",", "");
+                finalResult = finalResult.replace(" ", "");
+
+                StringBuilder reverseChar = new StringBuilder(finalResult);
+                finalResult = reverseChar.reverse().toString();
+
+                int count = 0;
+                while ((count + 1) < finalResult.length() && finalResult.charAt(
+                    count) == '0') {
+                    count++;
+                }
+
+                finalResult = finalResult.substring(count);
+                System.out.println(expression + " = " + finalResult);
+            }
 
         }
-
+        scan.close();
     }
 
 
@@ -94,20 +116,19 @@ public class Calculator {
     public String compute(String[] array) {
 
         // ["123", "456", "*", "789", "+"]
-        String operators = "*+-/^";
+        String operators = "*+^";
         Stack<LinkedList<Integer>> stack = new Stack<LinkedList<Integer>>();
 
         // Step 1: iterate through the array and get each element in it
         for (String element : array) {
-
             // Reverse the element --> "123" -> "321"
             StringBuilder reverseChar = new StringBuilder(element);
             element = reverseChar.reverse().toString();
 
-            // if element is not one of these [* + - /^]
+            // if element is not one of these [* + ^]
             if (!operators.contains(element)) {
 
-                // Turn the element into into array of chars
+                // Turn the element into array of chars
                 char[] digits = element.toCharArray(); // "123" --> ["1", "2",
                                                        // "3"]
 
@@ -119,6 +140,7 @@ public class Calculator {
             }
 
             switch (element) {
+
                 case "*":
                     LinkedList<Integer> product = multiply(stack.pop(), stack
                         .pop());
@@ -134,13 +156,11 @@ public class Calculator {
                     LinkedList<Integer> result = expo(stack.pop(), stack.pop());
                     stack.push(result);
                     break;
-
             }
 
         }
 
-        // System.out.println(stack.pop());
-        return stack.pop().toString();
+        return (stack.pop().toString());
     }
 
 
@@ -153,7 +173,7 @@ public class Calculator {
      * @return LinkedList
      *         representing the sum
      */
-    private LinkedList<Integer> addLL(
+    public LinkedList<Integer> addLL(
 
         LinkedList<Integer> num1,
         LinkedList<Integer> num2) {
@@ -215,85 +235,94 @@ public class Calculator {
     }
 
 
+    // ********THIS IS THE NEW MULTIPLICATION METHOD*********
     /**
+     * Multiplies two numbers represented as linked list
      * 
-     * @param num1
-     *            first number to be multiplied ( it has been reversed) 1->2->3
-     *            = 3->2->1
-     * @param num2
-     *            second number to be multiplied ( it has been reversed)
+     * @param link1
+     *            first number to be multiplied
+     * @param link2
+     *            second number to be multiplied
      * @return LinkedList
-     *         representing the product
+     *         representing the result
      */
-    public LinkedList<Integer> multiply(
-        LinkedList<Integer> num1,
-        LinkedList<Integer> num2) {
+    private LinkedList<Integer> multiply(
+        LinkedList<Integer> link1,
+        LinkedList<Integer> link2) {
 
-        // Temporary pointer nodes to traverse
-        LinkNode<Integer> ptr2 = num2.getHead();
+        // Make a list that will contain the result of multiplication, m+n+1 can
+        // be max size of the list
+        LinkedList<Integer> result = makeEmptyList(link1.size() + link2.size());
 
-        // Stack to collect all products and add them at the end
-        Stack<LinkedList<Integer>> stack = new Stack<LinkedList<Integer>>();
+        // Pointers for traversing the linked lists
+        LinkNode<Integer> firstPtr;
+        LinkNode<Integer> secondPtr = link2.getHead();
+        LinkNode<Integer> resultPtr1 = result.getHead();
+        LinkNode<Integer> resultPtr2;
 
-        // Multiply each node of num2 LinkedList with the num1
-        while (ptr2 != null) {
-
-            // To hold product of the two numbers
-            LinkedList<Integer> result = new LinkedList<Integer>();
-
-            // Pointer here so that it would reset when we iterate
-            LinkNode<Integer> ptr1 = num1.getHead();
-
-            // To carry remainders if product is above 0-9
+        // multiply each Node of second list with first
+        while (secondPtr != null) {
             int carry = 0;
 
-            // This is to have proper places for number so when that we can add
-            // properly
-            for (int i = 0; i < stack.size(); i++) {
-                result.add(0);
+            // Each time we start from the next of Node from which we started
+            // last time
+            resultPtr2 = resultPtr1;
+
+            firstPtr = link1.getHead();
+
+            while (firstPtr != null) {
+
+                // Multiply first list's digit with current second list's digit
+                int mul = firstPtr.getData() * secondPtr.getData() + carry;
+
+                // Assign the product to corresponding Node of result
+                resultPtr2.setData(resultPtr2.getData() + mul % 10); // error
+                // result.add(resultPtr2.getData() + mul % 10);
+
+                // Resultant Node itself can have more than 1 digit
+                carry = mul / 10 + resultPtr2.getData() / 10;
+                resultPtr2.setData(resultPtr2.getData() % 10);
+                // result.add(resultPtr2.getData() % 10);
+
+                firstPtr = firstPtr.getNext();
+                resultPtr2 = resultPtr2.getNext();
+
             }
 
-            while (ptr1 != null) {
-
-                int product = ptr1.getData() * ptr2.getData() + carry;
-
-                // Check if the product is single digit between 0-9
-                // or else carry a number
-                if (product > 10) {
-                    int save = product % 10; // number to be added into the
-                                             // LinkedList
-                    carry = product / 10; // the carry over
-                    result.add(save);
-                }
-                else {
-                    result.add(product);
-                }
-
-                // Go to the next data on num1
-                ptr1 = ptr1.getNext();
-            }
-
-            // If we are at the end of the multiplication and we have a carry
-            // we add the carry to our LinkedList
+            // If carry is remaining from last multiplication
             if (carry > 0) {
-                result.add(carry);
+                resultPtr2.setData(resultPtr2.getData() + carry);
             }
 
-            // Go to the next data on num2
-            ptr2 = ptr2.getNext();
-
-            // Push the result to the stack
-            stack.push(result);
+            resultPtr1 = resultPtr1.getNext();
+            secondPtr = secondPtr.getNext();
 
         }
 
-        LinkedList<Integer> sum = new LinkedList<Integer>();
-        while (!stack.isEmpty()) {
-            sum = addLL(sum, stack.pop());
-        }
-        return sum;
-
+        // Return head of multiplication list
+        return result;
     }
+
+
+    /**
+     * HELPER METHOD
+     * Makes a link list filled with zeros
+     * 
+     * @param len
+     *            length of the link lists that we are multiplying( link1 +
+     *            link2)
+     * @return
+     *         return a linked list full of zeros
+     */
+    private LinkedList<Integer> makeEmptyList(int len) {
+        LinkedList<Integer> temp = new LinkedList<Integer>();
+        while (len > 1) {
+            temp.add(0);
+            len--;
+        }
+        return temp;
+    }
+// ************************************************************************************
 
 
     /**
@@ -327,10 +356,12 @@ public class Calculator {
         // If power is even
         if ((power % 2) == 0) {
 
-            int count = 0;
+            int count = 1;
             power = power / 2;
+            // x^2
             result = multiply(x, x);
 
+            // (x^2) ^ (n/2)
             while (count < power) {
                 result = multiply(result, x);
                 count++;
@@ -342,7 +373,7 @@ public class Calculator {
         // If power is odd
         if (power % 2 != 0) {
 
-            int count = 0;
+            int count = 1;
             power = (power - 1) / 2;
 
             result = multiply(x, x);
