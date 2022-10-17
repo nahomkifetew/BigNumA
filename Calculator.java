@@ -252,7 +252,7 @@ public class Calculator {
 
         // Make a list that will contain the result of multiplication, m+n+1 can
         // be max size of the list
-        LinkedList<Integer> result = makeEmptyList(link1.size() + link2.size());
+        LinkedList<Integer> result = makeEmptyList(link1.size() + link2.size() + 1);
 
         // Pointers for traversing the linked lists
         LinkNode<Integer> firstPtr;
