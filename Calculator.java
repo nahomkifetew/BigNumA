@@ -40,6 +40,9 @@ public class Calculator {
 
             // Get the expression/equation
             String expression = scan.nextLine(); // 123 456 * 789 +
+            if (expression.isEmpty()) {
+                continue;
+            }
             expression = expression.replaceAll("\\s+", " ").trim();
 
             // Turn expression/equation into array
@@ -52,8 +55,15 @@ public class Calculator {
                 }
             }
 
+            // THIS IS NEW
+            if (signCount >= arrOfStr.length - signCount) {
+                System.out.println(expression + " =");
+                continue;
+            }
+
             if (signCount > (arrOfStr.length) / 2) {
                 System.out.println(expression + " =");
+                expression = scan.nextLine();
                 continue;
             }
 
@@ -63,12 +73,19 @@ public class Calculator {
 
                 continue;
             }
+
+            if (arrOfStr.length - signCount >= 2 + signCount) {
+                System.out.println(expression + " =");
+                expression = scan.nextLine();
+                continue;
+            }
+
             else {
 
                 int index = 0;
                 for (String element : arrOfStr) {
                     if (operators.contains(element)) {
-                        signCount++;
+                        // signCount++;
                     }
                     else {
 
@@ -95,7 +112,9 @@ public class Calculator {
                 }
 
                 finalResult = finalResult.substring(count);
-                System.out.println(expression + " = " + finalResult);
+                if (finalResult.length() >= 1) {
+                    System.out.println(expression + " = " + finalResult);
+                }
             }
 
         }
@@ -114,6 +133,10 @@ public class Calculator {
      * 
      */
     public String compute(String[] array) {
+
+        if (array.length == 0) {
+            return "";
+        }
 
         // ["123", "456", "*", "789", "+"]
         String operators = "*+^";
@@ -135,26 +158,34 @@ public class Calculator {
                 // Convert the array of chars to link list
                 LinkedList<Integer> linkListNum = listConverter(digits);
 
-                // Add link list onto stack
+                // Add linklist number onto stack
                 stack.push(linkListNum);
             }
 
             switch (element) {
 
                 case "*":
-                    LinkedList<Integer> product = multiply(stack.pop(), stack
-                        .pop());
-                    stack.push(product);
+                    if (stack.size() >= 2) {
+                        LinkedList<Integer> product = multiply(stack.pop(),
+                            stack.pop());
+                        stack.push(product);
+                    }
                     break;
 
                 case "+":
-                    LinkedList<Integer> sum = addLL(stack.pop(), stack.pop());
-                    stack.push(sum);
+                    if (stack.size() >= 2) {
+                        LinkedList<Integer> sum = addLL(stack.pop(), stack
+                            .pop());
+                        stack.push(sum);
+                    }
                     break;
 
                 case "^":
-                    LinkedList<Integer> result = expo(stack.pop(), stack.pop());
-                    stack.push(result);
+                    if (stack.size() >= 2) {
+                        LinkedList<Integer> result = expo(stack.pop(), stack
+                            .pop());
+                        stack.push(result);
+                    }
                     break;
             }
 
@@ -252,7 +283,8 @@ public class Calculator {
 
         // Make a list that will contain the result of multiplication, m+n+1 can
         // be max size of the list
-        LinkedList<Integer> result = makeEmptyList(link1.size() + link2.size() + 1);
+        LinkedList<Integer> result = makeEmptyList(link1.size() + link2.size()
+            + 1);
 
         // Pointers for traversing the linked lists
         LinkNode<Integer> firstPtr;
@@ -322,7 +354,6 @@ public class Calculator {
         }
         return temp;
     }
-// ************************************************************************************
 
 
     /**
@@ -340,12 +371,16 @@ public class Calculator {
         LinkedList<Integer> n,
         LinkedList<Integer> x) {
 
-        LinkedList<Integer> result = new LinkedList<Integer>();
+        LinkedList<Integer> result = x;
+
         LinkedList<Integer> zeroList = new LinkedList<Integer>();
         zeroList.add(1);
 
-        int power = Integer.parseInt(n.toString().replace("[", "").replace("]",
-            ""));
+        StringBuilder reverseChar = new StringBuilder(n.toString().replace("[",
+            "").replace("]", "").replace(",", "").replace(" ", ""));
+        String newN = reverseChar.reverse().toString();
+
+        int power = Integer.parseInt(newN.toString());
 
         // If exponent is 0 then result is always 1
         if (power == 0) {
@@ -353,18 +388,22 @@ public class Calculator {
             return zeroList;
         }
 
+        if (power == 1) {
+
+            return x;
+        }
         // If power is even
         if ((power % 2) == 0) {
 
-            int count = 1;
-            power = power / 2;
-            // x^2
-            result = multiply(x, x);
+            // (x) ^ 2*(n/2)
+            power = 2 * (power / 2);
 
-            // (x^2) ^ (n/2)
-            while (count < power) {
+            if (power == 1) {
+                return x;
+            }
+            while (power > 1) {
                 result = multiply(result, x);
-                count++;
+                power--;
             }
 
             return result;
@@ -373,15 +412,14 @@ public class Calculator {
         // If power is odd
         if (power % 2 != 0) {
 
-            int count = 1;
-            power = (power - 1) / 2;
+            power = 2 * ((power - 1) / 2); // 2*(n-1)/2
 
-            result = multiply(x, x);
-            while (count < power) {
+            while (power > 1) {
                 result = multiply(result, x);
-                count++;
+                power--;
             }
 
+            // x * (result)
             result = multiply(result, x);
 
             return result;
